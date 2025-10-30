@@ -8,13 +8,15 @@ interface Message {
 }
 
 const starterPrompts = [
-  "Create a sentiment analysis fine-tuning pipeline",
-  "Build RAG data preprocessing workflow",
-  "Generate synthetic training data for classification",
+  { text: "Build a RAG data preprocessing workflow", type: "rag" as const },
+  { text: "Create a sentiment analysis fine-tuning pipeline", type: "finetuning" as const },
+  { text: "Generate synthetic training data for classification", type: "synthetic" as const },
 ];
 
+export type PipelineType = "rag" | "finetuning" | "synthetic";
+
 interface ChatInterfaceProps {
-  onPipelineGenerated: () => void;
+  onPipelineGenerated: (type: PipelineType) => void;
 }
 
 export const ChatInterface = ({ onPipelineGenerated }: ChatInterfaceProps) => {
@@ -27,7 +29,7 @@ export const ChatInterface = ({ onPipelineGenerated }: ChatInterfaceProps) => {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleSend = async (text?: string) => {
+  const handleSend = async (text?: string, pipelineType?: PipelineType) => {
     const messageText = text || input;
     if (!messageText.trim() || isLoading) return;
 
@@ -36,12 +38,21 @@ export const ChatInterface = ({ onPipelineGenerated }: ChatInterfaceProps) => {
     setInput("");
     setIsLoading(true);
 
+    // Determine pipeline type from message
+    let detectedType: PipelineType = pipelineType || "finetuning";
+    
+    // Get AI response based on pipeline type
+    const responses = {
+      rag: "Analyzing your request... Identifying optimal pipeline configuration... I'll create a watsonx AutoAI-style RAG optimization pipeline with document chunking, embedding generation, vector storage, and pattern ranking...",
+      finetuning: "Analyzing your request... I'll create a fine-tuning pipeline using LoRA for efficient training. I've selected Data Prep Kit, InstructLab, and RAGAS based on your use case...",
+      synthetic: "Analyzing your request... I'll create a focused synthetic data generation workflow. Since you only need data generation, I'm showing just the preprocessing and generation stages..."
+    };
+
     // Simulate AI response
     setTimeout(() => {
       const assistantMessage: Message = {
         role: "assistant",
-        content:
-          "I'll create a complete pipeline with 4 stages: Data Processing, Synthetic Data Generation, Training, and Evaluation. Generating your pipeline now...",
+        content: responses[detectedType],
       };
       setMessages((prev) => [...prev, assistantMessage]);
 
@@ -53,7 +64,7 @@ export const ChatInterface = ({ onPipelineGenerated }: ChatInterfaceProps) => {
             "✓ Pipeline generated successfully! I've created both a Jupyter notebook and a visual pipeline diagram. You can see them in the Output tabs on the right.",
         };
         setMessages((prev) => [...prev, successMessage]);
-        onPipelineGenerated();
+        onPipelineGenerated(detectedType);
       }, 2000);
     }, 1000);
   };
@@ -99,10 +110,10 @@ export const ChatInterface = ({ onPipelineGenerated }: ChatInterfaceProps) => {
             {starterPrompts.map((prompt, index) => (
               <button
                 key={index}
-                onClick={() => handleSend(prompt)}
+                onClick={() => handleSend(prompt.text, prompt.type)}
                 className="text-left text-sm px-3 py-2 rounded-md bg-muted hover:bg-muted/80 transition-colors"
               >
-                {prompt}
+                {prompt.text}
               </button>
             ))}
           </div>

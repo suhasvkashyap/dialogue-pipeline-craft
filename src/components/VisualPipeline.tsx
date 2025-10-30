@@ -1,38 +1,129 @@
-import { Binary, Network, Laptop, BarChart3, CheckCircle2, Edit, Play, Calendar } from "lucide-react";
+import { Binary, Network, Laptop, BarChart3, CheckCircle2, Edit, Play, Calendar, FileText, Scissors, Grid3x3, Database, Search, Trophy, Medal } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { PipelineType } from "./ChatInterface";
+import { Slider } from "@/components/ui/slider";
 
-const pipelineStages = [
-  {
-    icon: Binary,
-    title: "Data processing",
-    description:
-      "Simplifies document processing and parsing into AI-readable data for model customization and RAG applications",
-    completed: true,
-  },
-  {
-    icon: Network,
-    title: "Synthetic data Generation hub",
-    description:
-      "Generate high-quality data, with dynamic parameters, run-time visibility, and multilingual support",
-    completed: true,
-  },
-  {
-    icon: Laptop,
-    title: "Training hub",
-    description:
-      "An algorithm-focused interface for common llm training, continual learning, and reinforcement learning techniques",
-    completed: true,
-  },
-  {
-    icon: BarChart3,
-    title: "Evaluations",
-    description:
-      "Simplifies the distributed execution of Evaluation jobs from popular eval frameworks or tasks",
-    completed: true,
-  },
+interface PipelineStage {
+  icon: any;
+  title: string;
+  description: string;
+  completed: boolean;
+  running?: boolean;
+  badges?: string[];
+}
+
+const pipelineConfigs = {
+  rag: [
+    {
+      icon: FileText,
+      title: "Document Upload",
+      description: "Upload grounding documents (PDF, Word, text files) for knowledge base",
+      completed: true,
+    },
+    {
+      icon: Scissors,
+      title: "Document Chunking",
+      description: "Split documents into optimal chunk sizes with configurable overlap",
+      completed: true,
+      badges: ["Chunk size: 512 tokens"],
+    },
+    {
+      icon: Grid3x3,
+      title: "Embedding Generation",
+      description: "Convert chunks to vector embeddings using selected embedding model",
+      completed: false,
+      running: true,
+      badges: ["slate-30m-english-rtrvr"],
+    },
+    {
+      icon: Database,
+      title: "Vector Store",
+      description: "Store vectorized content in database (Chroma, Milvus, or Elasticsearch)",
+      completed: false,
+      badges: ["Milvus"],
+    },
+    {
+      icon: Search,
+      title: "Retrieval Testing",
+      description: "Test retrieval accuracy with sample queries and ground truth",
+      completed: false,
+    },
+    {
+      icon: Trophy,
+      title: "RAG Pattern Ranking",
+      description: "Evaluate and rank RAG patterns using metrics: answer_correctness, faithfulness, context_recall",
+      completed: false,
+    },
+  ],
+  finetuning: [
+    {
+      icon: Binary,
+      title: "Data processing",
+      description: "Simplifies document processing and parsing into AI-readable data for model customization and RAG applications",
+      completed: true,
+      badges: ["Tool: Data Prep Kit (DPK)", "Format: JSONL"],
+    },
+    {
+      icon: Network,
+      title: "Synthetic data Generation hub",
+      description: "Generate high-quality data, with dynamic parameters, run-time visibility, and multilingual support",
+      completed: true,
+      badges: ["Generator: InstructLab (ilab)", "Method: Taxonomy-guided", "Output: 10,000 Q&A pairs"],
+    },
+    {
+      icon: Laptop,
+      title: "Training hub",
+      description: "An algorithm-focused interface for common llm training, continual learning, and reinforcement learning techniques",
+      completed: true,
+      badges: ["Method: LoRA", "Base Model: granite-7b-lab", "Rank: r=8, Alpha: 16", "Epochs: 3"],
+    },
+    {
+      icon: BarChart3,
+      title: "Evaluations",
+      description: "Simplifies the distributed execution of Evaluation jobs from popular eval frameworks or tasks",
+      completed: true,
+      badges: ["Framework: RAGAS + MT-Bench", "Metrics: BLEU, ROUGE-L, F1"],
+    },
+  ],
+  synthetic: [
+    {
+      icon: Binary,
+      title: "Data preprocessing",
+      description: "Load seed examples and prepare taxonomy structure",
+      completed: true,
+      badges: ["Seed examples: 50 samples", "Categories: 5 classes"],
+    },
+    {
+      icon: Network,
+      title: "Synthetic data Generation hub",
+      description: "Generate high-quality synthetic training data using InstructLab",
+      completed: false,
+      running: true,
+      badges: ["Output: 5,000 samples", "Diversity score: 0.85", "Multilingual: English, Spanish, French", "Quality threshold: >0.7"],
+    },
+  ],
+};
+
+const leaderboardData = [
+  { pattern: "Pattern 3", answerCorrectness: 0.7917, faithfulness: 0.7200, contextRecall: 0.8333, rank: 1 },
+  { pattern: "Pattern 1", answerCorrectness: 0.7292, faithfulness: 0.6800, contextRecall: 0.7500, rank: 2 },
+  { pattern: "Pattern 2", answerCorrectness: 0.6459, faithfulness: 0.6000, contextRecall: 0.6900, rank: 3 },
 ];
 
-export const VisualPipeline = () => {
+const accentColors = {
+  rag: "border-blue-500 bg-blue-500",
+  finetuning: "border-primary bg-primary",
+  synthetic: "border-green-500 bg-green-500",
+};
+
+interface VisualPipelineProps {
+  pipelineType: PipelineType;
+}
+
+export const VisualPipeline = ({ pipelineType }: VisualPipelineProps) => {
+  const pipelineStages = pipelineConfigs[pipelineType];
+  const accentColor = accentColors[pipelineType];
+
   return (
     <div className="h-full flex flex-col bg-background">
       <div className="p-4 border-b border-border flex items-center justify-between bg-card">
@@ -62,33 +153,125 @@ export const VisualPipeline = () => {
         <div className="max-w-6xl mx-auto">
           <div className="relative">
             {/* Pipeline stages */}
-            <div className="grid grid-cols-4 gap-8 mb-8">
+            <div className={`grid gap-8 mb-8 ${pipelineType === "rag" ? "grid-cols-3" : pipelineType === "synthetic" ? "grid-cols-2" : "grid-cols-4"}`}>
               {pipelineStages.map((stage, index) => (
                 <div key={index} className="relative">
                   {/* Connection line */}
                   {index < pipelineStages.length - 1 && (
-                    <div className="absolute top-12 left-[calc(50%+32px)] w-[calc(100%+32px)] h-1 bg-primary z-0">
-                      <div className="absolute right-0 top-1/2 -translate-y-1/2 w-0 h-0 border-t-4 border-t-transparent border-b-4 border-b-transparent border-l-8 border-l-primary"></div>
+                    <div className={`absolute top-12 left-[calc(50%+32px)] w-[calc(100%+32px)] h-1 ${accentColor} z-0`}>
+                      <div className={`absolute right-0 top-1/2 -translate-y-1/2 w-0 h-0 border-t-4 border-t-transparent border-b-4 border-b-transparent border-l-8 ${accentColor.replace('bg-', 'border-l-')}`}></div>
                     </div>
                   )}
                   
                   {/* Node */}
                   <div className="relative z-10 flex flex-col items-center">
-                    <div className="w-24 h-24 rounded-full bg-card border-4 border-primary flex items-center justify-center shadow-lg mb-4 relative">
-                      <stage.icon className="w-10 h-10 text-primary" />
+                    <div className={`w-24 h-24 rounded-full bg-card border-4 ${accentColor.replace('bg-', 'border-')} flex items-center justify-center shadow-lg mb-4 relative`}>
+                      <stage.icon className={`w-10 h-10 ${accentColor.replace('bg-', 'text-').replace('border-', 'text-')}`} />
                       {stage.completed && (
                         <div className="absolute -top-1 -right-1 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
                           <CheckCircle2 className="w-4 h-4 text-white" />
                         </div>
                       )}
+                      {stage.running && (
+                        <div className="absolute -top-1 -right-1 w-6 h-6 bg-yellow-500 rounded-full flex items-center justify-center animate-pulse">
+                          <div className="w-3 h-3 bg-white rounded-full" />
+                        </div>
+                      )}
                     </div>
                     <h4 className="font-semibold text-center mb-2 text-sm">{stage.title}</h4>
-                    <p className="text-xs text-muted-foreground text-center">{stage.description}</p>
+                    <p className="text-xs text-muted-foreground text-center mb-2">{stage.description}</p>
+                    
+                    {/* Badges */}
+                    {stage.badges && stage.badges.length > 0 && (
+                      <div className="flex flex-wrap gap-1 justify-center mt-2">
+                        {stage.badges.map((badge, badgeIndex) => (
+                          <span key={badgeIndex} className="text-xs bg-muted px-2 py-1 rounded-full">
+                            {badge}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}
             </div>
+
+            {/* Running stage progress */}
+            {pipelineType === "synthetic" && (
+              <div className="mt-8 p-6 bg-card rounded-lg border border-border">
+                <h4 className="font-semibold mb-4">Generation Progress</h4>
+                <div className="mb-4">
+                  <div className="flex justify-between text-sm mb-2">
+                    <span>Generating synthetic data...</span>
+                    <span>67%</span>
+                  </div>
+                  <div className="w-full bg-secondary h-2 rounded-full overflow-hidden">
+                    <div className="bg-green-500 h-full transition-all" style={{ width: "67%" }} />
+                  </div>
+                </div>
+                
+                <div className="space-y-4">
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">Temperature: 0.7</label>
+                    <Slider defaultValue={[0.7]} max={1} step={0.1} className="w-full" />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">Diversity penalty: 0.3</label>
+                    <Slider defaultValue={[0.3]} max={1} step={0.1} className="w-full" />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">Number of generations: 5000</label>
+                    <Slider defaultValue={[5000]} max={10000} step={100} className="w-full" />
+                  </div>
+                </div>
+
+                <Button className="mt-4 w-full bg-green-600 hover:bg-green-700">
+                  Download Generated Data
+                </Button>
+              </div>
+            )}
           </div>
+
+          {/* Leaderboard for RAG */}
+          {pipelineType === "rag" && (
+            <div className="mt-12 p-6 bg-card rounded-lg border border-border">
+              <h4 className="font-semibold mb-4 flex items-center gap-2">
+                <Trophy className="w-5 h-5 text-yellow-500" />
+                RAG Pattern Leaderboard
+              </h4>
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-border">
+                      <th className="text-left py-2 px-4 text-sm font-medium">Rank</th>
+                      <th className="text-left py-2 px-4 text-sm font-medium">Pattern Name</th>
+                      <th className="text-left py-2 px-4 text-sm font-medium">Answer Correctness</th>
+                      <th className="text-left py-2 px-4 text-sm font-medium">Faithfulness</th>
+                      <th className="text-left py-2 px-4 text-sm font-medium">Context Recall</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {leaderboardData.map((item) => (
+                      <tr key={item.rank} className="border-b border-border hover:bg-muted/50">
+                        <td className="py-3 px-4">
+                          <div className="flex items-center gap-2">
+                            {item.rank === 1 && <Medal className="w-5 h-5 text-yellow-500" />}
+                            {item.rank === 2 && <Medal className="w-5 h-5 text-gray-400" />}
+                            {item.rank === 3 && <Medal className="w-5 h-5 text-orange-600" />}
+                            <span className="font-medium">{item.rank}</span>
+                          </div>
+                        </td>
+                        <td className="py-3 px-4 font-medium">{item.pattern}</td>
+                        <td className="py-3 px-4">{item.answerCorrectness.toFixed(4)}</td>
+                        <td className="py-3 px-4">{item.faithfulness.toFixed(4)}</td>
+                        <td className="py-3 px-4">{item.contextRecall.toFixed(4)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
 
           {/* Pipeline details */}
           <div className="mt-12 p-6 bg-card rounded-lg border border-border">
@@ -96,15 +279,19 @@ export const VisualPipeline = () => {
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
                 <span className="text-muted-foreground">Total Stages:</span>
-                <span className="ml-2 font-medium">4</span>
+                <span className="ml-2 font-medium">{pipelineStages.length}</span>
               </div>
               <div>
                 <span className="text-muted-foreground">Status:</span>
-                <span className="ml-2 font-medium text-green-600">Ready to Run</span>
+                <span className="ml-2 font-medium text-green-600">
+                  {pipelineStages.some(s => s.running) ? "Running" : "Ready to Run"}
+                </span>
               </div>
               <div>
                 <span className="text-muted-foreground">Estimated Runtime:</span>
-                <span className="ml-2 font-medium">~45 minutes</span>
+                <span className="ml-2 font-medium">
+                  {pipelineType === "rag" ? "~60 minutes" : pipelineType === "synthetic" ? "~15 minutes" : "~45 minutes"}
+                </span>
               </div>
               <div>
                 <span className="text-muted-foreground">Last Modified:</span>

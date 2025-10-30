@@ -3,12 +3,14 @@ import { FileCode, Workflow } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { NotebookView } from "./NotebookView";
 import { VisualPipeline } from "./VisualPipeline";
+import { PipelineType } from "./ChatInterface";
 
 interface OutputPanelProps {
   pipelineGenerated: boolean;
+  pipelineType: PipelineType;
 }
 
-export const OutputPanel = ({ pipelineGenerated }: OutputPanelProps) => {
+export const OutputPanel = ({ pipelineGenerated, pipelineType }: OutputPanelProps) => {
   const [activeTab, setActiveTab] = useState("notebook");
 
   if (!pipelineGenerated) {
@@ -43,11 +45,11 @@ export const OutputPanel = ({ pipelineGenerated }: OutputPanelProps) => {
         </div>
 
         <TabsContent value="notebook" className="flex-1 m-0">
-          <NotebookView />
+          <NotebookView pipelineType={pipelineType} />
         </TabsContent>
 
         <TabsContent value="pipeline" className="flex-1 m-0">
-          <VisualPipeline />
+          <VisualPipeline pipelineType={pipelineType} />
         </TabsContent>
       </Tabs>
     </div>
