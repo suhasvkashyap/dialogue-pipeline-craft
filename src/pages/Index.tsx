@@ -1,11 +1,28 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { useState } from "react";
+import { Sidebar } from "@/components/Sidebar";
+import { Header } from "@/components/Header";
+import { ChatInterface } from "@/components/ChatInterface";
+import { OutputPanel } from "@/components/OutputPanel";
 
 const Index = () => {
+  const [pipelineGenerated, setPipelineGenerated] = useState(false);
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background">
-      <div className="text-center">
-        <h1 className="mb-4 text-4xl font-bold">Welcome to Your Blank App</h1>
-        <p className="text-xl text-muted-foreground">Start building your amazing project here!</p>
+    <div className="flex h-screen bg-background">
+      <Sidebar />
+      
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <Header />
+        
+        <div className="flex-1 flex overflow-hidden">
+          <div className="w-[40%] border-r border-border">
+            <ChatInterface onPipelineGenerated={() => setPipelineGenerated(true)} />
+          </div>
+          
+          <div className="flex-1">
+            <OutputPanel pipelineGenerated={pipelineGenerated} />
+          </div>
+        </div>
       </div>
     </div>
   );
