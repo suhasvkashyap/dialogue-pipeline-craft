@@ -1,4 +1,4 @@
-import { Download, Play } from "lucide-react";
+import { Download, Play, Lightbulb, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PipelineType } from "./ChatInterface";
 
@@ -6,6 +6,38 @@ interface NotebookCell {
   type: "markdown" | "code";
   content: string;
 }
+
+interface ExplainabilityData {
+  bullets: string[];
+  citation: string;
+}
+
+const notebookExplanations: Record<PipelineType, ExplainabilityData> = {
+  rag: {
+    bullets: [
+      "**Mistral-7B selected** as the base model due to its strong performance on retrieval-augmented tasks and efficient inference for sub-2-second response times.",
+      "**Chunk size of 512 tokens** with 50-token overlap chosen to balance context preservation with retrieval precision for long troubleshooting guides.",
+      "**Elasticsearch integration** configured with document filtering (`product_docs`, `support_playbooks` tags) and top-3 passage retrieval to enable source-linked answers for agent verification."
+    ],
+    citation: "Recommended based on Red Hat OpenShift AI documentation, section \"Production RAG Pipelines\" (fictitious)."
+  },
+  finetuning: {
+    bullets: [
+      "**LoRA-based fine-tuning** selected to minimize GPU cost while achieving effective adaptation on the 7B-parameter model for email classification.",
+      "**InstructLab synthetic data generation** with PII redaction and class balancing to address bias in historical email datasets.",
+      "**Macro-F1 threshold of 0.85** set as the model registration gate to ensure reliable classification across all categories (auto, property, health, fraud_review)."
+    ],
+    citation: "Derived from Red Hat AI validated demos – Insurance Document Classification (fictitious)."
+  },
+  synthetic: {
+    bullets: [
+      "**K-anonymity enforcement** on sensitive CDR fields ensures synthetic data cannot be re-identified while preserving analytical utility.",
+      "**1 million row target** with preserved churn-label correlations enables statistically valid model training without production PII access.",
+      "**Automated utility validation** via baseline AUC comparison between real and synthetic data ensures the generated dataset maintains predictive power."
+    ],
+    citation: "Recommended based on Red Hat AI best practices and guides, section \"Privacy-Preserving Synthetic Data\" (fictitious)."
+  }
+};
 
 const notebookConfigs: Record<PipelineType, NotebookCell[]> = {
   rag: [
@@ -637,6 +669,7 @@ interface NotebookViewProps {
 
 export const NotebookView = ({ pipelineType }: NotebookViewProps) => {
   const notebookCells = notebookConfigs[pipelineType];
+  const explanation = notebookExplanations[pipelineType];
 
   return (
     <div className="h-full flex flex-col bg-background">
@@ -664,6 +697,30 @@ export const NotebookView = ({ pipelineType }: NotebookViewProps) => {
       </div>
 
       <div className="flex-1 overflow-y-auto p-6 space-y-4">
+        {/* Explainability Section */}
+        <div className="border border-[hsl(var(--notebook-border))] rounded-md overflow-hidden bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/30">
+          <div className="flex items-center gap-2 px-3 py-2 bg-amber-100/50 dark:bg-amber-900/30 text-sm font-medium border-b border-amber-200 dark:border-amber-800">
+            <Lightbulb className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+            <span className="text-amber-800 dark:text-amber-300">Explain this recommendation</span>
+          </div>
+          <div className="p-4 space-y-3">
+            <ul className="space-y-2">
+              {explanation.bullets.map((bullet, idx) => (
+                <li key={idx} className="flex items-start gap-2 text-sm text-foreground">
+                  <span className="text-amber-600 dark:text-amber-400 mt-1">•</span>
+                  <span dangerouslySetInnerHTML={{ 
+                    __html: bullet.replace(/\*\*(.*?)\*\*/g, '<strong class="text-amber-700 dark:text-amber-300">$1</strong>') 
+                  }} />
+                </li>
+              ))}
+            </ul>
+            <div className="flex items-center gap-2 pt-2 border-t border-amber-200 dark:border-amber-800">
+              <BookOpen className="w-4 h-4 text-muted-foreground" />
+              <span className="text-xs text-muted-foreground italic">{explanation.citation}</span>
+            </div>
+          </div>
+        </div>
+
         {notebookCells.map((cell, index) => (
           <div key={index} className="border border-[hsl(var(--notebook-border))] rounded-md overflow-hidden">
             <div className="flex items-center px-3 py-1 bg-muted text-xs text-muted-foreground border-b border-[hsl(var(--notebook-border))]">
