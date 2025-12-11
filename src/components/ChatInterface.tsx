@@ -8,9 +8,21 @@ interface Message {
 }
 
 const starterPrompts = [
-  { text: "Build a RAG data preprocessing workflow", type: "rag" as const },
-  { text: "Create a sentiment analysis fine-tuning pipeline", type: "finetuning" as const },
-  { text: "Generate synthetic training data for classification", type: "synthetic" as const },
+  { 
+    text: "Create a RAG system using Mistral-7B that lets our customer support agents ask natural language questions about our internal product documentation stored in Elasticsearch and returns concise, source-linked answers within 2 seconds.", 
+    type: "rag" as const,
+    label: "RAG: Customer Support Knowledge Base"
+  },
+  { 
+    text: "Create a fine-tuning pipeline that adapts an open-source LLM to automatically classify incoming insurance claim emails into categories like auto, property, health, and fraud_review, and suggest a priority level (low/medium/high).", 
+    type: "finetuning" as const,
+    label: "Fine-Tuning: Insurance Claim Email Triage"
+  },
+  { 
+    text: "Create a synthetic data generation pipeline that produces realistic but fully de-identified customer usage records for a telco churn prediction model, so data scientists can experiment without accessing production PII.", 
+    type: "synthetic" as const,
+    label: "Synthetic Data: Telco Churn Prediction"
+  },
 ];
 
 export type PipelineType = "rag" | "finetuning" | "synthetic";
@@ -113,7 +125,7 @@ export const ChatInterface = ({ onPipelineGenerated }: ChatInterfaceProps) => {
                 onClick={() => handleSend(prompt.text, prompt.type)}
                 className="text-left text-sm px-3 py-2 rounded-md bg-muted hover:bg-muted/80 transition-colors"
               >
-                {prompt.text}
+                <span className="font-medium text-primary">{prompt.label}</span>
               </button>
             ))}
           </div>
