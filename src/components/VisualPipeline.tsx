@@ -1,4 +1,4 @@
-import { Binary, Network, Laptop, BarChart3, CheckCircle2, Edit, Play, Calendar, FileText, Scissors, Grid3x3, Database, Search, Trophy, Medal } from "lucide-react";
+import { Binary, Network, Laptop, BarChart3, CheckCircle2, Edit, Play, Calendar, FileText, Scissors, Grid3x3, Database, Search, Trophy, Medal, HelpCircle, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PipelineType } from "./ChatInterface";
 import { Slider } from "@/components/ui/slider";
@@ -11,6 +11,50 @@ interface PipelineStage {
   running?: boolean;
   badges?: string[];
 }
+
+interface StageExplanation {
+  stage: string;
+  reason: string;
+}
+
+interface PipelineExplanation {
+  summary: string;
+  stages: StageExplanation[];
+  citation: string;
+}
+
+const pipelineExplanations: Record<PipelineType, PipelineExplanation> = {
+  rag: {
+    summary: "This RAG pipeline is designed for customer support knowledge base retrieval with Mistral-7B, optimized for sub-2-second response times and source-linked answers.",
+    stages: [
+      { stage: "Document Upload", reason: "Ingests product documentation and support playbooks from your Elasticsearch cluster with tag filtering." },
+      { stage: "Document Chunking", reason: "512-token chunks with overlap preserve context in long troubleshooting guides while enabling precise retrieval." },
+      { stage: "Embedding Generation", reason: "Selected embedding model optimized for Mistral-7B compatibility and semantic search accuracy." },
+      { stage: "Vector Store", reason: "Elasticsearch vector storage enables seamless integration with your existing infrastructure." },
+      { stage: "Retrieval Testing", reason: "Validates retrieval accuracy before deployment to ensure agent confidence in answers." },
+      { stage: "RAG Pattern Ranking", reason: "Evaluates multiple retrieval configurations to optimize answer quality and faithfulness metrics." }
+    ],
+    citation: "Derived from Red Hat AI validated demos – RAG on product docs (fictitious)."
+  },
+  finetuning: {
+    summary: "This fine-tuning pipeline adapts an LLM for insurance claim email classification using LoRA, with built-in PII protection and performance validation.",
+    stages: [
+      { stage: "Data processing", reason: "Ingests historical emails from S3 with PII redaction and class balancing to prevent bias in model training." },
+      { stage: "Synthetic data Generation hub", reason: "Augments training data with InstructLab to improve coverage across all claim categories." },
+      { stage: "Training hub", reason: "LoRA fine-tuning minimizes GPU cost while achieving effective adaptation for multi-class classification." },
+      { stage: "Evaluations", reason: "Macro-F1 threshold of 0.85 ensures reliable classification before model registration and deployment." }
+    ],
+    citation: "Recommended based on Red Hat AI Notebook examples, section \"Email Classification Fine-Tuning\" (fictitious)."
+  },
+  synthetic: {
+    summary: "This pipeline generates privacy-preserving synthetic telco customer data for churn prediction modeling without exposing production PII.",
+    stages: [
+      { stage: "Data preprocessing", reason: "Analyzes source Parquet data structure and enforces k-anonymity on sensitive CDR fields." },
+      { stage: "Synthetic data Generation hub", reason: "Generates 1M+ balanced records preserving usage-churn correlations with automated AUC validation." }
+    ],
+    citation: "Derived from Red Hat OpenShift AI documentation, section \"Synthetic Data for ML Training\" (fictitious)."
+  }
+};
 
 const pipelineConfigs = {
   rag: [
@@ -123,6 +167,7 @@ interface VisualPipelineProps {
 export const VisualPipeline = ({ pipelineType }: VisualPipelineProps) => {
   const pipelineStages = pipelineConfigs[pipelineType];
   const accentColor = accentColors[pipelineType];
+  const explanation = pipelineExplanations[pipelineType];
 
   return (
     <div className="h-full flex flex-col bg-background">
@@ -151,6 +196,29 @@ export const VisualPipeline = ({ pipelineType }: VisualPipelineProps) => {
 
       <div className="flex-1 overflow-y-auto p-8">
         <div className="max-w-6xl mx-auto">
+          {/* Why this pipeline? Panel */}
+          <div className="mb-8 p-5 bg-gradient-to-r from-sky-50 to-indigo-50 dark:from-sky-950/30 dark:to-indigo-950/30 border border-sky-200 dark:border-sky-800 rounded-lg">
+            <div className="flex items-center gap-2 mb-3">
+              <HelpCircle className="w-5 h-5 text-sky-600 dark:text-sky-400" />
+              <h4 className="font-semibold text-sky-800 dark:text-sky-300">Why this pipeline?</h4>
+            </div>
+            <p className="text-sm text-foreground mb-4">{explanation.summary}</p>
+            
+            <div className="space-y-2 mb-4">
+              {explanation.stages.map((stageExp, idx) => (
+                <div key={idx} className="flex items-start gap-2 text-sm">
+                  <span className="font-medium text-sky-700 dark:text-sky-400 min-w-[140px] shrink-0">{stageExp.stage}:</span>
+                  <span className="text-muted-foreground">{stageExp.reason}</span>
+                </div>
+              ))}
+            </div>
+            
+            <div className="flex items-center gap-2 pt-3 border-t border-sky-200 dark:border-sky-800">
+              <BookOpen className="w-4 h-4 text-muted-foreground" />
+              <span className="text-xs text-muted-foreground italic">{explanation.citation}</span>
+            </div>
+          </div>
+
           <div className="relative">
             {/* Pipeline stages */}
             <div className={`grid gap-8 mb-8 ${pipelineType === "rag" ? "grid-cols-3" : pipelineType === "synthetic" ? "grid-cols-2" : "grid-cols-4"}`}>
