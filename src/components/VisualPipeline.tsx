@@ -252,8 +252,8 @@ export const VisualPipeline = ({ pipelineType }: VisualPipelineProps) => {
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-8">
-        <div className="max-w-6xl mx-auto">
+      <div className="flex-1 overflow-auto p-8">
+        <div className="min-w-[900px] max-w-6xl mx-auto">
           {/* Why this pipeline? Panel */}
           <div className="mb-8 p-5 bg-gradient-to-r from-sky-50 to-indigo-50 dark:from-sky-950/30 dark:to-indigo-950/30 border border-sky-200 dark:border-sky-800 rounded-lg">
             <div className="flex items-center gap-2 mb-3">

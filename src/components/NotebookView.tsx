@@ -1019,7 +1019,7 @@ export const NotebookView = ({ pipelineType }: NotebookViewProps) => {
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-6 space-y-4">
+      <div className="flex-1 overflow-auto p-6 space-y-4">
         {/* Explainability Section */}
         <div className="border border-[hsl(var(--notebook-border))] rounded-md overflow-hidden bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/30">
           <div className="flex items-center gap-2 px-3 py-2 bg-amber-100/50 dark:bg-amber-900/30 text-sm font-medium border-b border-amber-200 dark:border-amber-800">
