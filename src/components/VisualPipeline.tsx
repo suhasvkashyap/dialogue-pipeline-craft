@@ -1,4 +1,4 @@
-import { Binary, Network, Laptop, BarChart3, CheckCircle2, Edit, Play, Calendar, FileText, Scissors, Grid3x3, Database, Search, Trophy, Medal, HelpCircle, BookOpen } from "lucide-react";
+import { Binary, Network, Laptop, BarChart3, CheckCircle2, Edit, Play, Calendar, FileText, Scissors, Grid3x3, Database, Search, Trophy, Medal, HelpCircle, BookOpen, Server, Cpu, Activity, Shield, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PipelineType } from "./ChatInterface";
 import { Slider } from "@/components/ui/slider";
@@ -53,6 +53,18 @@ const pipelineExplanations: Record<PipelineType, PipelineExplanation> = {
       { stage: "Synthetic data Generation hub", reason: "Generates 1M+ balanced records preserving usage-churn correlations with automated AUC validation." }
     ],
     citation: "Derived from Red Hat OpenShift AI documentation, section \"Synthetic Data for ML Training\" (fictitious)."
+  },
+  llmserving: {
+    summary: "This pipeline deploys Llama-3-70B using llm-d for distributed inference on OpenShift AI, with multi-node GPU scaling, prefix caching, and KServe-compatible endpoints.",
+    stages: [
+      { stage: "Model Configuration", reason: "Configures Llama-3-70B with tensor parallelism across 4 GPUs per node for optimal memory distribution." },
+      { stage: "llm-d Distributed Setup", reason: "Deploys llm-d disaggregated serving with separate prefill and decode pools for maximum throughput." },
+      { stage: "KServe Integration", reason: "Wraps llm-d deployment in KServe InferenceService for OpenShift AI-native autoscaling and routing." },
+      { stage: "Prefix Cache Config", reason: "Enables prefix caching to reuse KV-cache across requests, reducing latency for common prompt patterns." },
+      { stage: "Load Balancing", reason: "Configures Istio-based load balancing with session affinity for optimal request distribution." },
+      { stage: "Monitoring & Observability", reason: "Integrates Prometheus metrics and Grafana dashboards for real-time inference performance tracking." }
+    ],
+    citation: "Recommended based on Red Hat AI validated demos – Enterprise LLM Serving with llm-d (fictitious)."
   }
 };
 
@@ -146,6 +158,51 @@ const pipelineConfigs = {
       badges: ["Output: 5,000 samples", "Diversity score: 0.85", "Multilingual: English, Spanish, French", "Quality threshold: >0.7"],
     },
   ],
+  llmserving: [
+    {
+      icon: Cpu,
+      title: "Model Configuration",
+      description: "Configure Llama-3-70B model with tensor parallelism and quantization settings",
+      completed: true,
+      badges: ["Model: Llama-3-70B", "Tensor Parallel: 4 GPUs", "Quantization: FP16"],
+    },
+    {
+      icon: Server,
+      title: "llm-d Distributed Setup",
+      description: "Deploy llm-d with disaggregated prefill/decode pools for high-throughput serving",
+      completed: true,
+      badges: ["llm-d v0.1", "Prefill workers: 2", "Decode workers: 4", "vLLM backend"],
+    },
+    {
+      icon: Zap,
+      title: "KServe Integration",
+      description: "Configure KServe InferenceService with OpenShift AI-native autoscaling",
+      completed: false,
+      running: true,
+      badges: ["KServe v0.12", "REST + gRPC", "Min replicas: 2", "Max replicas: 8"],
+    },
+    {
+      icon: Database,
+      title: "Prefix Cache Config",
+      description: "Enable prefix caching to optimize latency for repeated prompt patterns",
+      completed: false,
+      badges: ["Cache size: 32GB", "Block size: 16", "Eviction: LRU"],
+    },
+    {
+      icon: Shield,
+      title: "Load Balancing",
+      description: "Configure Istio service mesh for intelligent request routing",
+      completed: false,
+      badges: ["Istio Gateway", "Session affinity", "Health checks"],
+    },
+    {
+      icon: Activity,
+      title: "Monitoring & Observability",
+      description: "Integrate Prometheus metrics and Grafana dashboards for inference monitoring",
+      completed: false,
+      badges: ["Prometheus", "Grafana", "Token/s metrics", "Latency P99"],
+    },
+  ],
 };
 
 const leaderboardData = [
@@ -221,7 +278,7 @@ export const VisualPipeline = ({ pipelineType }: VisualPipelineProps) => {
 
           <div className="relative">
             {/* Pipeline stages */}
-            <div className={`grid gap-8 mb-8 ${pipelineType === "rag" ? "grid-cols-3" : pipelineType === "synthetic" ? "grid-cols-2" : "grid-cols-4"}`}>
+            <div className={`grid gap-8 mb-8 ${pipelineType === "rag" ? "grid-cols-3" : pipelineType === "synthetic" ? "grid-cols-2" : pipelineType === "llmserving" ? "grid-cols-3" : "grid-cols-4"}`}>
               {pipelineStages.map((stage, index) => (
                 <div key={index} className="relative">
                   {/* Connection line */}
@@ -358,7 +415,7 @@ export const VisualPipeline = ({ pipelineType }: VisualPipelineProps) => {
               <div>
                 <span className="text-muted-foreground">Estimated Runtime:</span>
                 <span className="ml-2 font-medium">
-                  {pipelineType === "rag" ? "~60 minutes" : pipelineType === "synthetic" ? "~15 minutes" : "~45 minutes"}
+                  {pipelineType === "rag" ? "~60 minutes" : pipelineType === "synthetic" ? "~15 minutes" : pipelineType === "llmserving" ? "~30 minutes" : "~45 minutes"}
                 </span>
               </div>
               <div>
