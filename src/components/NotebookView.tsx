@@ -36,6 +36,14 @@ const notebookExplanations: Record<PipelineType, ExplainabilityData> = {
       "**Automated utility validation** via baseline AUC comparison between real and synthetic data ensures the generated dataset maintains predictive power."
     ],
     citation: "Recommended based on Red Hat AI best practices and guides, section \"Privacy-Preserving Synthetic Data\" (fictitious)."
+  },
+  llmserving: {
+    bullets: [
+      "**llm-d disaggregated architecture** selected to separate prefill and decode phases, maximizing GPU utilization and enabling independent scaling for each workload type.",
+      "**Tensor parallelism across 4 GPUs** per node distributes Llama-3-70B's 70B parameters efficiently, with FP16 precision balancing quality and memory footprint.",
+      "**Prefix caching with 32GB allocation** reuses KV-cache across requests sharing common prompt prefixes, reducing time-to-first-token by up to 60% for enterprise chatbot patterns."
+    ],
+    citation: "Derived from Red Hat AI validated demos – Enterprise LLM Serving with llm-d (fictitious)."
   }
 };
 
@@ -661,6 +669,320 @@ plt.show()
 print("\\n📈 Analysis complete! Synthetic dataset is ready for training.")`,
     },
   ],
+  llmserving: [
+    {
+      type: "markdown",
+      content: "# Distributed LLM Serving with llm-d\nDeploy Llama-3-70B on Red Hat OpenShift AI using llm-d for high-throughput, low-latency inference",
+    },
+    {
+      type: "code",
+      content: `import os
+from kubernetes import client, config
+from kserve import KServeClient, V1beta1InferenceService
+import yaml`,
+    },
+    {
+      type: "markdown",
+      content: "## Step 1: Model Configuration\nConfigure Llama-3-70B with tensor parallelism across multiple GPUs",
+    },
+    {
+      type: "code",
+      content: `# Model configuration for distributed serving
+model_config = {
+    "model_id": "meta-llama/Llama-3-70B-Instruct",
+    "tensor_parallel_size": 4,  # Distribute across 4 GPUs per node
+    "dtype": "float16",
+    "max_model_len": 8192,
+    "gpu_memory_utilization": 0.90,
+    "quantization": None,  # FP16 for quality, use "awq" for memory savings
+}
+
+print("✓ Model: Llama-3-70B-Instruct")
+print(f"✓ Tensor Parallel Size: {model_config['tensor_parallel_size']} GPUs")
+print(f"✓ Precision: {model_config['dtype'].upper()}")
+print(f"✓ Max Context Length: {model_config['max_model_len']} tokens")
+print(f"✓ GPU Memory Utilization: {model_config['gpu_memory_utilization']*100}%")`,
+    },
+    {
+      type: "markdown",
+      content: "## Step 2: llm-d Distributed Setup\nConfigure llm-d with disaggregated prefill and decode pools",
+    },
+    {
+      type: "code",
+      content: `# llm-d configuration for disaggregated serving
+llmd_config = """
+apiVersion: llm-d.ai.redhat.com/v1alpha1
+kind: LLMDeployment
+metadata:
+  name: llama3-70b-distributed
+  namespace: llm-serving
+spec:
+  model:
+    id: meta-llama/Llama-3-70B-Instruct
+    source: huggingface
+  
+  # Disaggregated architecture for optimal throughput
+  prefillPool:
+    replicas: 2
+    resources:
+      limits:
+        nvidia.com/gpu: 4
+        memory: "256Gi"
+    tensorParallelSize: 4
+    
+  decodePool:
+    replicas: 4
+    resources:
+      limits:
+        nvidia.com/gpu: 4
+        memory: "256Gi"
+    tensorParallelSize: 4
+    
+  # vLLM backend configuration
+  backend:
+    type: vllm
+    maxModelLen: 8192
+    gpuMemoryUtilization: 0.9
+"""
+
+print("✓ llm-d Deployment Configuration:")
+print("  - Prefill Workers: 2 replicas × 4 GPUs = 8 GPUs")
+print("  - Decode Workers: 4 replicas × 4 GPUs = 16 GPUs")
+print("  - Total GPU Allocation: 24 GPUs")
+print("  - Backend: vLLM with continuous batching")`,
+    },
+    {
+      type: "markdown",
+      content: "## Step 3: KServe Integration\nWrap llm-d deployment in KServe InferenceService for OpenShift AI integration",
+    },
+    {
+      type: "code",
+      content: `# KServe InferenceService configuration
+kserve_config = """
+apiVersion: serving.kserve.io/v1beta1
+kind: InferenceService
+metadata:
+  name: llama3-70b-service
+  namespace: llm-serving
+  annotations:
+    serving.kserve.io/deploymentMode: RawDeployment
+    sidecar.istio.io/inject: "true"
+spec:
+  predictor:
+    minReplicas: 2
+    maxReplicas: 8
+    scaleTarget: 70  # Target 70% GPU utilization
+    scaleMetric: gpu
+    
+    containers:
+    - name: kserve-container
+      image: quay.io/rhoai/llm-d-server:latest
+      args:
+        - --model-id=meta-llama/Llama-3-70B-Instruct
+        - --tensor-parallel-size=4
+        - --enable-prefix-caching
+        - --max-model-len=8192
+      resources:
+        limits:
+          nvidia.com/gpu: 4
+          memory: "256Gi"
+        requests:
+          nvidia.com/gpu: 4
+          memory: "200Gi"
+      
+      ports:
+      - containerPort: 8080
+        protocol: TCP
+        name: http
+      - containerPort: 8081
+        protocol: TCP
+        name: grpc
+"""
+
+# Apply KServe configuration
+print("✓ KServe InferenceService configured:")
+print("  - Min Replicas: 2")
+print("  - Max Replicas: 8 (autoscaling enabled)")
+print("  - Scale Metric: GPU utilization @ 70%")
+print("  - Endpoints: REST (8080) + gRPC (8081)")`,
+    },
+    {
+      type: "markdown",
+      content: "## Step 4: Prefix Cache Configuration\nEnable prefix caching to optimize latency for repeated prompt patterns",
+    },
+    {
+      type: "code",
+      content: `# Prefix caching configuration for llm-d
+prefix_cache_config = {
+    "enable_prefix_caching": True,
+    "prefix_cache_size_gb": 32,
+    "block_size": 16,
+    "eviction_policy": "lru",
+    "hash_algorithm": "sha256",
+    "cache_common_prefixes": [
+        "You are a helpful enterprise assistant...",
+        "Based on our company documentation...",
+        "Analyze the following customer query..."
+    ]
+}
+
+# Expected improvements
+print("✓ Prefix Caching Enabled:")
+print(f"  - Cache Size: {prefix_cache_config['prefix_cache_size_gb']}GB")
+print(f"  - Block Size: {prefix_cache_config['block_size']} tokens")
+print(f"  - Eviction Policy: {prefix_cache_config['eviction_policy'].upper()}")
+print("\\n📊 Expected Performance Improvements:")
+print("  - Time-to-first-token: -60% for cached prefixes")
+print("  - Throughput: +40% for similar prompts")
+print("  - Memory efficiency: Shared KV-cache across requests")`,
+    },
+    {
+      type: "markdown",
+      content: "## Step 5: Load Balancing Configuration\nConfigure Istio service mesh for intelligent request routing",
+    },
+    {
+      type: "code",
+      content: `# Istio Gateway and VirtualService configuration
+istio_config = """
+apiVersion: networking.istio.io/v1beta1
+kind: Gateway
+metadata:
+  name: llm-gateway
+  namespace: llm-serving
+spec:
+  selector:
+    istio: ingressgateway
+  servers:
+  - port:
+      number: 443
+      name: https
+      protocol: HTTPS
+    tls:
+      mode: SIMPLE
+      credentialName: llm-tls-secret
+    hosts:
+    - llm.apps.openshift.example.com
+---
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: llama3-routing
+  namespace: llm-serving
+spec:
+  hosts:
+  - llm.apps.openshift.example.com
+  gateways:
+  - llm-gateway
+  http:
+  - match:
+    - uri:
+        prefix: /v1/completions
+    route:
+    - destination:
+        host: llama3-70b-service
+        port:
+          number: 8080
+    retries:
+      attempts: 3
+      perTryTimeout: 30s
+    timeout: 120s
+"""
+
+print("✓ Istio Load Balancing Configured:")
+print("  - Gateway: HTTPS with TLS termination")
+print("  - Session Affinity: Enabled for streaming")
+print("  - Retry Policy: 3 attempts, 30s per try")
+print("  - Request Timeout: 120s max")`,
+    },
+    {
+      type: "markdown",
+      content: "## Step 6: Monitoring & Observability\nIntegrate Prometheus metrics and Grafana dashboards",
+    },
+    {
+      type: "code",
+      content: `# Prometheus ServiceMonitor for llm-d metrics
+monitoring_config = """
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: llama3-metrics
+  namespace: llm-serving
+spec:
+  selector:
+    matchLabels:
+      app: llama3-70b-service
+  endpoints:
+  - port: metrics
+    interval: 15s
+    path: /metrics
+"""
+
+# Key metrics to track
+llm_metrics = {
+    "vllm_num_requests_running": "Active requests being processed",
+    "vllm_num_requests_waiting": "Queued requests",
+    "vllm_gpu_cache_usage_perc": "GPU KV-cache utilization",
+    "vllm_avg_prompt_throughput_toks_per_s": "Input token throughput",
+    "vllm_avg_generation_throughput_toks_per_s": "Output token throughput",
+    "vllm_request_latency_seconds": "End-to-end request latency",
+    "vllm_time_to_first_token_seconds": "Time to first token (TTFT)",
+}
+
+print("✓ Prometheus Metrics Configured:")
+print("  - Scrape Interval: 15s")
+for metric, desc in list(llm_metrics.items())[:5]:
+    print(f"  - {metric}: {desc}")
+
+print("\\n📊 Grafana Dashboard Panels:")
+print("  - Token Throughput (input/output)")
+print("  - Request Latency P50/P95/P99")
+print("  - GPU Utilization & Cache Usage")
+print("  - Queue Depth & Active Requests")`,
+    },
+    {
+      type: "markdown",
+      content: "## Step 7: Deploy and Test\nApply configuration and validate the deployment",
+    },
+    {
+      type: "code",
+      content: `# Deploy llm-d service
+def deploy_llm_service():
+    """Deploy the complete llm-d stack to OpenShift AI"""
+    
+    # Apply configurations
+    steps = [
+        ("Creating namespace...", "oc create namespace llm-serving"),
+        ("Applying llm-d deployment...", "oc apply -f llmd-deployment.yaml"),
+        ("Configuring KServe...", "oc apply -f kserve-inference.yaml"),
+        ("Setting up Istio routing...", "oc apply -f istio-config.yaml"),
+        ("Enabling monitoring...", "oc apply -f servicemonitor.yaml"),
+    ]
+    
+    for step, cmd in steps:
+        print(f"\\n{step}")
+        print(f"  $ {cmd}")
+        print("  ✓ Applied successfully")
+    
+    return True
+
+# Run deployment
+deploy_llm_service()
+
+# Test inference endpoint
+print("\\n🧪 Testing Inference Endpoint...")
+test_payload = {
+    "model": "llama3-70b",
+    "messages": [{"role": "user", "content": "Hello, how can you help me today?"}],
+    "max_tokens": 100
+}
+print(f"  POST https://llm.apps.openshift.example.com/v1/chat/completions")
+print(f"  Payload: {test_payload}")
+print("\\n✅ Deployment Complete!")
+print("  - Endpoint: https://llm.apps.openshift.example.com")
+print("  - Status: Ready (2/2 replicas)")
+print("  - Avg Latency: 245ms TTFT, 42 tokens/s generation")`,
+    },
+  ],
 };
 
 interface NotebookViewProps {
@@ -677,6 +999,7 @@ export const NotebookView = ({ pipelineType }: NotebookViewProps) => {
         <h3 className="font-semibold">
           {pipelineType === "rag" ? "rag_optimization_pipeline.ipynb" : 
            pipelineType === "synthetic" ? "synthetic_data_generation.ipynb" : 
+           pipelineType === "llmserving" ? "llm_distributed_serving.ipynb" :
            "model_customization_pipeline.ipynb"}
         </h3>
         <div className="flex gap-2">

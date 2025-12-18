@@ -23,9 +23,14 @@ const starterPrompts = [
     type: "synthetic" as const,
     label: "Synthetic Data: Telco Churn Prediction"
   },
+  { 
+    text: "Deploy a distributed LLM inference service using llm-d on Red Hat OpenShift AI that serves Llama-3-70B across multiple GPU nodes with automatic load balancing, prefix caching for improved throughput, and KServe-compatible REST/gRPC endpoints for our enterprise chatbot application.", 
+    type: "llmserving" as const,
+    label: "LLM Serving: Distributed Llama-3-70B with llm-d"
+  },
 ];
 
-export type PipelineType = "rag" | "finetuning" | "synthetic";
+export type PipelineType = "rag" | "finetuning" | "synthetic" | "llmserving";
 
 interface ChatInterfaceProps {
   onPipelineGenerated: (type: PipelineType) => void;
@@ -57,7 +62,8 @@ export const ChatInterface = ({ onPipelineGenerated }: ChatInterfaceProps) => {
     const responses = {
       rag: "Analyzing your request... Identifying optimal pipeline configuration... I'll create a watsonx AutoAI-style RAG optimization pipeline with document chunking, embedding generation, vector storage, and pattern ranking...",
       finetuning: "Analyzing your request... I'll create a fine-tuning pipeline using LoRA for efficient training. I've selected Data Prep Kit, InstructLab, and RAGAS based on your use case...",
-      synthetic: "Analyzing your request... I'll create a focused synthetic data generation workflow. Since you only need data generation, I'm showing just the preprocessing and generation stages..."
+      synthetic: "Analyzing your request... I'll create a focused synthetic data generation workflow. Since you only need data generation, I'm showing just the preprocessing and generation stages...",
+      llmserving: "Analyzing your request... I'll create a distributed LLM serving pipeline using llm-d on OpenShift AI. This includes multi-node GPU deployment, KServe integration, prefix caching optimization, and production-grade monitoring..."
     };
 
     // Simulate AI response
