@@ -215,6 +215,7 @@ const accentColors = {
   rag: "border-blue-500 bg-blue-500",
   finetuning: "border-primary bg-primary",
   synthetic: "border-green-500 bg-green-500",
+  llmserving: "border-purple-500 bg-purple-500",
 };
 
 interface VisualPipelineProps {
