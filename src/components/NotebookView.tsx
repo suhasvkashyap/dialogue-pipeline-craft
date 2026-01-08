@@ -44,6 +44,14 @@ const notebookExplanations: Record<PipelineType, ExplainabilityData> = {
       "**Prefix caching with 32GB allocation** reuses KV-cache across requests sharing common prompt prefixes, reducing time-to-first-token by up to 60% for enterprise chatbot patterns."
     ],
     citation: "Derived from Red Hat AI validated demos – Enterprise LLM Serving with llm-d (fictitious)."
+  },
+  agentic: {
+    bullets: [
+      "**Modular tool-based architecture** enables independent development and testing of each agent capability (triage, labeling, review suggestion, dependency checks) with clear interfaces.",
+      "**GitHub webhook integration** with event routing ensures real-time response to repository events while the cron scheduler handles batch operations for stale issue cleanup.",
+      "**OpenShift Secrets management** with automatic rotation secures GitHub tokens and API credentials, meeting enterprise compliance requirements for credential handling."
+    ],
+    citation: "Derived from Red Hat AI validated demos – Agentic Workflow Starter Kits (fictitious)."
   }
 };
 
@@ -983,6 +991,408 @@ print("  - Status: Ready (2/2 replicas)")
 print("  - Avg Latency: 245ms TTFT, 42 tokens/s generation")`,
     },
   ],
+  agentic: [
+    {
+      type: "markdown",
+      content: "# GitHub Repository Maintenance Agent Starter Kit\nAn agentic workflow for automated issue triage, PR review suggestions, labeling, and dependency management",
+    },
+    {
+      type: "code",
+      content: `import os
+from github import Github
+from openai import OpenAI
+import json
+from datetime import datetime, timedelta`,
+    },
+    {
+      type: "markdown",
+      content: "## Step 1: GitHub API Connection\nEstablish secure connection to GitHub API using fine-grained PAT",
+    },
+    {
+      type: "code",
+      content: `# Initialize GitHub client with fine-grained PAT
+def connect_github():
+    """Establish authenticated connection to GitHub API"""
+    
+    # Load token from OpenShift Secrets
+    github_token = os.environ.get("GITHUB_PAT")
+    
+    if not github_token:
+        raise ValueError("GITHUB_PAT not found in environment")
+    
+    gh = Github(github_token)
+    
+    # Verify authentication
+    user = gh.get_user()
+    print(f"✓ Connected to GitHub as: {user.login}")
+    print(f"✓ Rate limit remaining: {gh.rate_limiting[0]}/{gh.rate_limiting[1]}")
+    
+    return gh
+
+# Connect to GitHub
+gh_client = connect_github()
+
+# Get target repository
+repo = gh_client.get_repo("example-org/sample-repository")
+print(f"✓ Repository: {repo.full_name}")
+print(f"✓ Open Issues: {repo.open_issues_count}")
+print(f"✓ Open PRs: {len(list(repo.get_pulls(state='open')))}")`,
+    },
+    {
+      type: "markdown",
+      content: "## Step 2: Define Agent Tools\nCreate modular tools for issue triage, labeling, PR review suggestion, and dependency checks",
+    },
+    {
+      type: "code",
+      content: `# Initialize LLM client for agent reasoning
+llm_client = OpenAI(base_url="https://llm.apps.openshift.example.com/v1")
+
+# Tool: Issue Triage and Classification
+def triage_issue(issue):
+    """Analyze issue and determine category and priority"""
+    
+    prompt = f"""Analyze this GitHub issue and classify it:
+    
+Title: {issue.title}
+Body: {issue.body[:1000] if issue.body else 'No description'}
+
+Respond with JSON:
+{{"category": "bug|enhancement|question|documentation", "priority": "low|medium|high", "reasoning": "..."}}"""
+
+    response = llm_client.chat.completions.create(
+        model="llama3-70b",
+        messages=[{"role": "user", "content": prompt}],
+        response_format={"type": "json_object"}
+    )
+    
+    return json.loads(response.choices[0].message.content)
+
+# Tool: Auto-labeling
+def apply_labels(issue, classification):
+    """Apply appropriate labels based on classification"""
+    
+    label_map = {
+        "bug": ["bug", "needs-triage"],
+        "enhancement": ["enhancement", "feature-request"],
+        "question": ["question", "help-wanted"],
+        "documentation": ["documentation", "good-first-issue"]
+    }
+    
+    priority_labels = {
+        "high": "priority/critical",
+        "medium": "priority/normal", 
+        "low": "priority/low"
+    }
+    
+    labels = label_map.get(classification["category"], [])
+    labels.append(priority_labels.get(classification["priority"], "priority/normal"))
+    
+    issue.add_to_labels(*labels)
+    return labels
+
+print("✓ Defined tools: triage_issue, apply_labels")`,
+    },
+    {
+      type: "markdown",
+      content: "## Step 3: PR Review Suggestion Tool\nSuggest reviewers based on CODEOWNERS and file change analysis",
+    },
+    {
+      type: "code",
+      content: `# Tool: PR Review Suggestion
+def suggest_reviewers(pull_request):
+    """Suggest reviewers based on CODEOWNERS and modified files"""
+    
+    # Parse CODEOWNERS file
+    try:
+        codeowners_content = repo.get_contents("CODEOWNERS").decoded_content.decode()
+        codeowners = parse_codeowners(codeowners_content)
+    except:
+        codeowners = {}
+    
+    # Get modified files
+    modified_files = [f.filename for f in pull_request.get_files()]
+    
+    # Find matching owners
+    suggested_reviewers = set()
+    for file_path in modified_files:
+        for pattern, owners in codeowners.items():
+            if match_pattern(file_path, pattern):
+                suggested_reviewers.update(owners)
+    
+    # Exclude PR author
+    suggested_reviewers.discard(pull_request.user.login)
+    
+    # Request reviews
+    if suggested_reviewers:
+        pull_request.create_review_request(reviewers=list(suggested_reviewers)[:3])
+    
+    return list(suggested_reviewers)
+
+def parse_codeowners(content):
+    """Parse CODEOWNERS file into pattern-owners mapping"""
+    owners = {}
+    for line in content.split("\\n"):
+        if line.strip() and not line.startswith("#"):
+            parts = line.split()
+            if len(parts) >= 2:
+                pattern = parts[0]
+                owners[pattern] = [o.lstrip("@") for o in parts[1:]]
+    return owners
+
+print("✓ Defined tool: suggest_reviewers with CODEOWNERS support")`,
+    },
+    {
+      type: "markdown",
+      content: "## Step 4: Dependency Check Tool\nDetect CI failures due to outdated packages and create upgrade tasks",
+    },
+    {
+      type: "code",
+      content: `# Tool: Dependency Check
+def check_dependencies(check_run):
+    """Analyze CI failure and create dependency upgrade issues if needed"""
+    
+    if check_run.conclusion != "failure":
+        return None
+    
+    # Get check run logs (simplified)
+    logs = get_check_run_logs(check_run)
+    
+    # Analyze for dependency issues
+    prompt = f"""Analyze this CI failure log and determine if it's caused by outdated dependencies:
+
+{logs[:2000]}
+
+Respond with JSON:
+{{"is_dependency_issue": true/false, "packages": ["pkg1", "pkg2"], "recommended_versions": {{"pkg1": "1.2.3"}}, "reasoning": "..."}}"""
+
+    response = llm_client.chat.completions.create(
+        model="llama3-70b",
+        messages=[{"role": "user", "content": prompt}],
+        response_format={"type": "json_object"}
+    )
+    
+    analysis = json.loads(response.choices[0].message.content)
+    
+    if analysis["is_dependency_issue"]:
+        # Create follow-up issue
+        issue_body = f"""## Dependency Upgrade Required
+
+CI build failed due to outdated packages.
+
+**Affected packages:**
+{chr(10).join(f"- {pkg}: upgrade to {analysis['recommended_versions'].get(pkg, 'latest')}" for pkg in analysis['packages'])}
+
+**Analysis:** {analysis['reasoning']}
+
+**Related check run:** {check_run.html_url}
+
+---
+_This issue was automatically created by the GitHub Maintenance Agent._
+"""
+        
+        new_issue = repo.create_issue(
+            title=f"[Auto] Dependency upgrade: {', '.join(analysis['packages'][:3])}",
+            body=issue_body,
+            labels=["dependencies", "automated", "priority/high"]
+        )
+        return new_issue
+    
+    return None
+
+print("✓ Defined tool: check_dependencies with CI log analysis")`,
+    },
+    {
+      type: "markdown",
+      content: "## Step 5: End-to-End Agent Simulation\nSimulate agent run on sample repository events",
+    },
+    {
+      type: "code",
+      content: `# Simulate agent processing
+def run_agent_simulation(repo):
+    """Simulate end-to-end agent run on sample events"""
+    
+    results = {
+        "issues_processed": 0,
+        "prs_processed": 0,
+        "labels_applied": [],
+        "reviewers_suggested": [],
+        "dependency_issues_created": 0,
+        "decisions": []
+    }
+    
+    # Process open issues
+    print("\\n🔍 Processing open issues...")
+    for issue in list(repo.get_issues(state="open"))[:5]:
+        if issue.pull_request:
+            continue
+            
+        classification = triage_issue(issue)
+        labels = apply_labels(issue, classification)
+        
+        results["issues_processed"] += 1
+        results["labels_applied"].extend(labels)
+        results["decisions"].append({
+            "type": "issue_triage",
+            "issue": issue.number,
+            "classification": classification,
+            "action": f"Applied labels: {labels}"
+        })
+        
+        print(f"  Issue #{issue.number}: {classification['category']} ({classification['priority']})")
+    
+    # Process open PRs
+    print("\\n🔍 Processing open pull requests...")
+    for pr in list(repo.get_pulls(state="open"))[:5]:
+        reviewers = suggest_reviewers(pr)
+        
+        results["prs_processed"] += 1
+        results["reviewers_suggested"].extend(reviewers)
+        results["decisions"].append({
+            "type": "pr_review",
+            "pr": pr.number,
+            "action": f"Suggested reviewers: {reviewers}"
+        })
+        
+        print(f"  PR #{pr.number}: Suggested reviewers: {reviewers}")
+    
+    print(f"\\n✅ Agent Simulation Complete!")
+    print(f"  - Issues processed: {results['issues_processed']}")
+    print(f"  - PRs processed: {results['prs_processed']}")
+    print(f"  - Total labels applied: {len(results['labels_applied'])}")
+    print(f"  - Reviewers suggested: {len(set(results['reviewers_suggested']))}")
+    
+    return results
+
+# Run simulation
+simulation_results = run_agent_simulation(repo)`,
+    },
+    {
+      type: "markdown",
+      content: "## Step 6: Decision Logging\nLog all agent decisions for monitoring and iteration",
+    },
+    {
+      type: "code",
+      content: `import json
+from datetime import datetime
+
+# Decision logging for observability
+class DecisionLogger:
+    def __init__(self, log_path="agent_decisions.jsonl"):
+        self.log_path = log_path
+        self.decisions = []
+    
+    def log(self, decision_type, context, action, reasoning):
+        """Log an agent decision with full context"""
+        entry = {
+            "timestamp": datetime.utcnow().isoformat(),
+            "type": decision_type,
+            "context": context,
+            "action": action,
+            "reasoning": reasoning
+        }
+        
+        self.decisions.append(entry)
+        
+        # Append to JSONL file
+        with open(self.log_path, "a") as f:
+            f.write(json.dumps(entry) + "\\n")
+        
+        return entry
+    
+    def get_metrics(self):
+        """Calculate metrics from logged decisions"""
+        return {
+            "total_decisions": len(self.decisions),
+            "by_type": self._count_by_type(),
+            "avg_response_time_ms": 245  # Placeholder
+        }
+    
+    def _count_by_type(self):
+        counts = {}
+        for d in self.decisions:
+            counts[d["type"]] = counts.get(d["type"], 0) + 1
+        return counts
+
+# Initialize logger
+logger = DecisionLogger()
+
+# Log simulation decisions
+for decision in simulation_results["decisions"]:
+    logger.log(
+        decision_type=decision["type"],
+        context={"issue": decision.get("issue"), "pr": decision.get("pr")},
+        action=decision["action"],
+        reasoning=decision.get("classification", {}).get("reasoning", "Based on CODEOWNERS")
+    )
+
+print("\\n📊 Decision Metrics:")
+metrics = logger.get_metrics()
+print(f"  - Total decisions logged: {metrics['total_decisions']}")
+for dtype, count in metrics['by_type'].items():
+    print(f"  - {dtype}: {count}")`,
+    },
+    {
+      type: "markdown",
+      content: "## Step 7: Deploy Agent Configuration\nConfigure webhook routing and scheduled execution",
+    },
+    {
+      type: "code",
+      content: `# Agent deployment configuration
+agent_config = """
+apiVersion: agents.ai.redhat.com/v1alpha1
+kind: GitHubMaintenanceAgent
+metadata:
+  name: repo-maintenance-agent
+  namespace: github-agents
+spec:
+  repository:
+    owner: example-org
+    name: sample-repository
+  
+  # GitHub webhook configuration
+  webhook:
+    events:
+      - issues.opened
+      - issues.reopened
+      - pull_request.opened
+      - pull_request.synchronize
+      - check_run.completed
+    secret:
+      name: github-webhook-secret
+      key: webhook-secret
+  
+  # Scheduled execution for batch operations
+  schedule:
+    # Run every 15 minutes for new events
+    interval: "*/15 * * * *"
+    # Daily cleanup of stale issues
+    staleIssueCleanup: "0 2 * * *"
+  
+  # Secrets configuration
+  secrets:
+    githubToken:
+      name: github-pat-secret
+      key: token
+    llmEndpoint:
+      name: llm-endpoint-secret
+      key: api-key
+  
+  # Monitoring
+  metrics:
+    enabled: true
+    endpoint: /metrics
+    port: 8080
+"""
+
+print("✓ Agent Configuration Generated:")
+print("  - Webhook events: issues, pull_requests, check_runs")
+print("  - Schedule: Every 15 minutes + daily cleanup at 2 AM")
+print("  - Secrets: Managed via OpenShift Secrets")
+print("  - Metrics: Prometheus-compatible on :8080/metrics")
+
+print("\\n🚀 Ready to deploy with: oc apply -f agent-config.yaml")`,
+    },
+  ],
 };
 
 interface NotebookViewProps {
@@ -1000,6 +1410,7 @@ export const NotebookView = ({ pipelineType }: NotebookViewProps) => {
           {pipelineType === "rag" ? "rag_optimization_pipeline.ipynb" : 
            pipelineType === "synthetic" ? "synthetic_data_generation.ipynb" : 
            pipelineType === "llmserving" ? "llm_distributed_serving.ipynb" :
+           pipelineType === "agentic" ? "github_maintenance_agent.ipynb" :
            "model_customization_pipeline.ipynb"}
         </h3>
         <div className="flex gap-2">

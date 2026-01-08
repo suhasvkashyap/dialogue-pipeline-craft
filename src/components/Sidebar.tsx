@@ -5,7 +5,7 @@ const menuItems = [
   { icon: LayoutDashboard, label: "Projects", path: "/projects" },
   { icon: GitBranch, label: "Data Science Pipelines", path: "/pipelines" },
   { icon: Server, label: "Model Serving", path: "/model-serving" },
-  { icon: Sparkles, label: "Model Customization", path: "/" },
+  { icon: Sparkles, label: "Chat with Lightspeed", path: "/" },
   { icon: Database, label: "Data Connections", path: "/data-connections" },
   { icon: Settings, label: "Settings", path: "/settings" },
 ];

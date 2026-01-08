@@ -1,4 +1,4 @@
-import { Binary, Network, Laptop, BarChart3, CheckCircle2, Edit, Play, Calendar, FileText, Scissors, Grid3x3, Database, Search, Trophy, Medal, HelpCircle, BookOpen, Server, Cpu, Activity, Shield, Zap } from "lucide-react";
+import { Binary, Network, Laptop, BarChart3, CheckCircle2, Edit, Play, Calendar, FileText, Scissors, Grid3x3, Database, Search, Trophy, Medal, HelpCircle, BookOpen, Server, Cpu, Activity, Shield, Zap, GitBranch } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PipelineType } from "./ChatInterface";
 import { Slider } from "@/components/ui/slider";
@@ -65,6 +65,18 @@ const pipelineExplanations: Record<PipelineType, PipelineExplanation> = {
       { stage: "Monitoring & Observability", reason: "Integrates Prometheus metrics and Grafana dashboards for real-time inference performance tracking." }
     ],
     citation: "Recommended based on Red Hat AI validated demos – Enterprise LLM Serving with llm-d (fictitious)."
+  },
+  agentic: {
+    summary: "This agentic starter kit creates a GitHub repository maintenance agent that triages issues/PRs, applies labels, suggests reviewers, and handles dependency upgrades with scheduled execution and monitoring.",
+    stages: [
+      { stage: "GitHub API Connection", reason: "Establishes secure OAuth-based connection to GitHub API with fine-grained PAT for repo access and webhook registration." },
+      { stage: "Agent Tools Definition", reason: "Defines modular tools for issue triage, labeling (bug/enhancement/question/priority), PR review suggestion based on CODEOWNERS, and dependency checking." },
+      { stage: "Webhook Event Router", reason: "Routes incoming GitHub webhook events (issues.opened, pull_request.opened, check_run.completed) to appropriate agent handlers." },
+      { stage: "Scheduled Execution", reason: "Configures cron-based scheduler for periodic repository scans and batch processing of stale issues." },
+      { stage: "Secrets Management", reason: "Securely stores GitHub tokens and API credentials using OpenShift Secrets with automatic rotation support." },
+      { stage: "Monitoring & Metrics", reason: "Records agent decisions, action outcomes, and performance metrics for iteration and observability dashboards." }
+    ],
+    citation: "Derived from Red Hat AI validated demos – Agentic Workflow Starter Kits (fictitious)."
   }
 };
 
@@ -203,6 +215,51 @@ const pipelineConfigs = {
       badges: ["Prometheus", "Grafana", "Token/s metrics", "Latency P99"],
     },
   ],
+  agentic: [
+    {
+      icon: Network,
+      title: "GitHub API Connection",
+      description: "Establish secure OAuth connection to GitHub API with fine-grained PAT",
+      completed: true,
+      badges: ["OAuth 2.0", "Fine-grained PAT", "Repo scope"],
+    },
+    {
+      icon: Binary,
+      title: "Agent Tools Definition",
+      description: "Define modular tools for issue triage, labeling, PR review, and dependency checks",
+      completed: true,
+      badges: ["Issue Triage", "Auto-labeling", "CODEOWNERS lookup", "Dep scanner"],
+    },
+    {
+      icon: Zap,
+      title: "Webhook Event Router",
+      description: "Route GitHub webhook events to appropriate agent handlers",
+      completed: false,
+      running: true,
+      badges: ["issues.opened", "pull_request.opened", "check_run.completed"],
+    },
+    {
+      icon: Calendar,
+      title: "Scheduled Execution",
+      description: "Configure cron-based scheduler for periodic repository scans",
+      completed: false,
+      badges: ["Cron: */15 * * * *", "Batch processing", "Stale issue cleanup"],
+    },
+    {
+      icon: Shield,
+      title: "Secrets Management",
+      description: "Securely store GitHub tokens with automatic rotation support",
+      completed: false,
+      badges: ["OpenShift Secrets", "Auto-rotation", "Encrypted at rest"],
+    },
+    {
+      icon: Activity,
+      title: "Monitoring & Metrics",
+      description: "Record agent decisions and outcomes for observability dashboards",
+      completed: false,
+      badges: ["Decision logs", "Action outcomes", "Prometheus metrics"],
+    },
+  ],
 };
 
 const leaderboardData = [
@@ -216,6 +273,7 @@ const accentColors = {
   finetuning: "border-primary bg-primary",
   synthetic: "border-green-500 bg-green-500",
   llmserving: "border-purple-500 bg-purple-500",
+  agentic: "border-orange-500 bg-orange-500",
 };
 
 interface VisualPipelineProps {
@@ -279,7 +337,7 @@ export const VisualPipeline = ({ pipelineType }: VisualPipelineProps) => {
 
           <div className="relative">
             {/* Pipeline stages */}
-            <div className={`grid gap-8 mb-8 ${pipelineType === "rag" ? "grid-cols-3" : pipelineType === "synthetic" ? "grid-cols-2" : pipelineType === "llmserving" ? "grid-cols-3" : "grid-cols-4"}`}>
+            <div className={`grid gap-8 mb-8 ${pipelineType === "rag" ? "grid-cols-3" : pipelineType === "synthetic" ? "grid-cols-2" : pipelineType === "llmserving" ? "grid-cols-3" : pipelineType === "agentic" ? "grid-cols-3" : "grid-cols-4"}`}>
               {pipelineStages.map((stage, index) => (
                 <div key={index} className="relative">
                   {/* Connection line */}
