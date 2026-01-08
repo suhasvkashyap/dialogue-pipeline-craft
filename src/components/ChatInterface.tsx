@@ -28,9 +28,14 @@ const starterPrompts = [
     type: "llmserving" as const,
     label: "LLM Serving: Distributed Llama-3-70B with llm-d"
   },
+  { 
+    text: "Create an agentic starter kit for a GitHub repository maintenance agent that automatically triages new issues and pull requests, applies appropriate labels (bug, enhancement, question, priority), suggests reviewers based on code ownership, and opens follow-up tasks for dependency upgrades when CI fails due to outdated packages. The starter kit should include: (1) a notebook that walks through connecting to the GitHub API, defining the agent's tools (issue triage, labeling, PR review suggestion, dependency check), simulating end-to-end runs on a sample repository, and logging decisions; and (2) a visual pipeline that schedules the agent to run on a configurable interval, handles authentication secrets securely, routes events from GitHub webhooks into the agent, and records outcomes and metrics for monitoring and iteration.", 
+    type: "agentic" as const,
+    label: "Create Agentic Starter kits"
+  },
 ];
 
-export type PipelineType = "rag" | "finetuning" | "synthetic" | "llmserving";
+export type PipelineType = "rag" | "finetuning" | "synthetic" | "llmserving" | "agentic";
 
 interface ChatInterfaceProps {
   onPipelineGenerated: (type: PipelineType) => void;
@@ -59,11 +64,12 @@ export const ChatInterface = ({ onPipelineGenerated }: ChatInterfaceProps) => {
     let detectedType: PipelineType = pipelineType || "finetuning";
     
     // Get AI response based on pipeline type
-    const responses = {
+    const responses: Record<PipelineType, string> = {
       rag: "Analyzing your request... Identifying optimal pipeline configuration... I'll create a watsonx AutoAI-style RAG optimization pipeline with document chunking, embedding generation, vector storage, and pattern ranking...",
       finetuning: "Analyzing your request... I'll create a fine-tuning pipeline using LoRA for efficient training. I've selected Data Prep Kit, InstructLab, and RAGAS based on your use case...",
       synthetic: "Analyzing your request... I'll create a focused synthetic data generation workflow. Since you only need data generation, I'm showing just the preprocessing and generation stages...",
-      llmserving: "Analyzing your request... I'll create a distributed LLM serving pipeline using llm-d on OpenShift AI. This includes multi-node GPU deployment, KServe integration, prefix caching optimization, and production-grade monitoring..."
+      llmserving: "Analyzing your request... I'll create a distributed LLM serving pipeline using llm-d on OpenShift AI. This includes multi-node GPU deployment, KServe integration, prefix caching optimization, and production-grade monitoring...",
+      agentic: "Analyzing your request... I'll create an agentic starter kit for GitHub repository maintenance. This includes GitHub API integration, agent tool definitions (issue triage, labeling, PR review suggestions, dependency checks), webhook event routing, scheduled execution, and comprehensive monitoring..."
     };
 
     // Simulate AI response

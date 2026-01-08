@@ -5,7 +5,7 @@ export const Header = () => {
     <header className="h-16 bg-card border-b border-border flex items-center justify-between px-6">
       <div className="flex items-center gap-4">
         <div className="text-sm text-muted-foreground">
-          Projects &gt; Model Customization &gt; AI Pipeline Builder
+          Projects &gt; Chat with Lightspeed &gt; AI Pipeline Builder
         </div>
       </div>
       
